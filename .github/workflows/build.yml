@@ -10,6 +10,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -19,9 +21,17 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
+          cache: gradle
           
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.gradle/caches
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: ${{ runner.os }}-gradle-
         
       - name: Accept SDK licenses
         run: |
@@ -29,20 +39,27 @@ jobs:
           
       - name: Install Platform
         run: |
-          sdkmanager "platforms;android-34" "platform-tools"
+          sdkmanager "platforms;android-34" "platform-tools" "sources;android-34"
         
       - name: Install Build Tools
         run: |
-          sdkmanager "build-tools;34.0.0" "cmdline-tools;latest"
+          sdkmanager "build-tools;34.0.0"
         
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
         
       - name: Build APK
-        run: ./gradlew assembleDebug
+        run: ./gradlew assembleDebug --stacktrace
+        
+      - name: Debug - List build outputs
+        if: failure()
+        run: |
+          ls -la app/build/outputs/ || echo "No outputs directory"
+          find . -name "*.apk" 2>/dev/null || echo "No APK found"
         
       - name: Upload APK
         uses: actions/upload-artifact@v4
+        if: success()
         with:
           name: picoclaw-android-utility
           path: app/build/outputs/apk/debug/app-debug.apk
