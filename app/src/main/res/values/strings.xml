@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">PicoClaw Utility</string>
+    <string name="accessibility_service_label">PicoClaw Remote Control</string>
+    <string name="accessibility_service_description">Enables PicoClaw to interact with screen elements for automation and remote control functionality.</string>
 </resources>
