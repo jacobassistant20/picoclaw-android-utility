@@ -21,27 +21,29 @@ jobs:
           distribution: 'temurin'
           
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v2
+        uses: android-actions/setup-android@v3
         
-      - name: Make gradlew executable
+      - name: Accept SDK licenses
+        run: |
+          yes | sdkmanager --licenses || true
+          
+      - name: Install Platform
+        run: |
+          sdkmanager "platforms;android-34" "platform-tools"
+        
+      - name: Install Build Tools
+        run: |
+          sdkmanager "build-tools;34.0.0" "cmdline-tools;latest"
+        
+      - name: Grant execute permission for gradlew
         run: chmod +x gradlew
         
       - name: Build APK
         run: ./gradlew assembleDebug
         
-      - name: Upload APK to artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: debug-apk
-          path: app/build/outputs/apk/debug/*.apk
-          
-      - name: Rename APK for release
-        run: |
-          mkdir -p output
-          cp app/build/outputs/apk/debug/app-debug.apk output/picoclaw-android-utility.apk
-          
-      - name: Upload to release assets
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: picoclaw-android-utility
-          path: output/picoclaw-android-utility.apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 5
