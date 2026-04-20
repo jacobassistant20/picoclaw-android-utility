@@ -2,13 +2,27 @@
 
 Zero-root remote control for Android via Accessibility Services.
 
+[![Build APK](https://github.com/jacobassistant20/picoclaw-android-utility/actions/workflows/build.yml/badge.svg)](https://github.com/jacobassistant20/picoclaw-android-utility/actions/workflows/build.yml)
+[![Release](https://img.shields.io/github/v/release/jacobassistant20/picoclaw-android-utility?label=latest%20release)](https://github.com/jacobassistant20/picoclaw-android-utility/releases/latest)
+
+---
+
+## Download
+
+| Method | Link |
+|--------|------|
+| **Latest Release (Recommended)** | [GitHub Releases](https://github.com/jacobassistant20/picoclaw-android-utility/releases/latest) |
+| CI Artifacts | [Actions → Build APK](https://github.com/jacobassistant20/picoclaw-android-utility/actions) |
+
+**Release Naming:** `picoclaw-android-utility-vX.Y.Z.apk`
+
 ---
 
 ## Quick Start
 
 | Step | Action | Time |
 |------|--------|------|
-| 1 | Build APK | 5 min |
+| 1 | [Download APK](#download) | 1 min |
 | 2 | Install on device | 2 min |
 | 3 | Enable accessibility service | 2 min |
 | 4 | Connect via WebSocket | 1 min |
@@ -54,32 +68,37 @@ Controls Android device remotely using Android's built-in Accessibility APIs - t
 
 ### Prerequisites
 
-- Android Studio OR Gradle CLI
 - Android device (API 24+, Android 7.0+)
-- USB cable or ADB wireless for first install
+- USB cable or file transfer method for first install
 
-### 1. Build APK
+### 1. Download APK
 
+**Option A: GitHub Release (Recommended)**
+1. Go to [Latest Release](https://github.com/jacobassistant20/picoclaw-android-utility/releases/latest)
+2. Download `picoclaw-android-utility-vX.Y.Z.apk`
+3. Transfer to Android device
+
+**Option B: CI Build**
+1. Go to [Actions](https://github.com/jacobassistant20/picoclaw-android-utility/actions)
+2. Click latest successful **Build APK** run
+3. Download artifact `picoclaw-android-utility`
+4. Extract and transfer APK to device
+
+**Option C: Build from Source**
 ```bash
-# Clone/navigate to project
-cd /path/to/picoclaw-android-utility
-
-# Build debug APK
 ./gradlew assembleDebug
-
-# APK location:
-# app/build/outputs/apk/debug/app-debug.apk
+# APK: app/build/outputs/apk/debug/app-debug.apk
 ```
 
 ### 2. Install on Device
 
 #### Option A: ADB (if available)
 ```bash
-adb install app/build/outputs/apk/debug/app-debug.apk
+adb install picoclaw-android-utility-*.apk
 ```
 
 #### Option B: Manual Install
-1. Transfer `app-debug.apk` to device (file transfer, cloud, etc.)
+1. Transfer APK to device (file transfer, cloud, etc.)
 2. On device: Enable **Settings → Security → Unknown Sources**
 3. Tap APK file to install
 
@@ -216,6 +235,31 @@ websocat ws://192.168.1.100:8765 <<< '{"action":"swipe","startX":500,"startY":10
 - `androidx.appcompat:appcompat:1.6.1`
 - `com.google.android.material:material:1.11.0`
 - `org.java-websocket:Java-WebSocket:1.5.4`
+
+---
+
+## Development
+
+### Making a Release
+
+Push a semver tag to trigger automatic release creation:
+
+```bash
+git tag v1.0.0
+git "push" origin v1.0.0
+```
+
+The workflow will:
+1. Build APK
+2. Create GitHub Release
+3. Attach APK as asset
+
+### Build Locally
+
+```bash
+./gradlew assembleDebug
+# Output: app/build/outputs/apk/debug/app-debug.apk
+```
 
 ---
 

@@ -3,6 +3,7 @@ name: Build APK
 on:
   push:
     branches: [ main, master ]
+    tags: [ 'v*' ]
   pull_request:
     branches: [ main, master ]
   workflow_dispatch:
@@ -71,10 +72,24 @@ jobs:
           ls -la app/build/outputs/ || echo "No outputs directory"
           find . -name "*.apk" 2>/dev/null || echo "No APK found"
         
-      - name: Upload APK
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
-        if: success()
         with:
           name: picoclaw-android-utility
           path: app/build/outputs/apk/debug/app-debug.apk
           retention-days: 5
+          
+      - name: Rename APK for release
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          mkdir -p release
+          cp app/build/outputs/apk/debug/app-debug.apk release/picoclaw-android-utility-${{ github.ref_name }}.apk
+          
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: release/*.apk
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
