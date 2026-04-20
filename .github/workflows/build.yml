@@ -45,19 +45,13 @@ jobs:
         run: |
           sdkmanager "build-tools;34.0.0"
         
-      - name: Fix Gradle Wrapper
+      - name: Fix Gradle Wrapper JAR
         run: |
-          # The wrapper JAR may be corrupted - regenerate it
-          mkdir -p $HOME/temp-gradle && cd $HOME/temp-gradle
-          # Download and extract gradle
-          wget -q https://services.gradle.org/distributions/gradle-8.2-bin.zip
-          unzip -q gradle-8.2-bin.zip
-          # Generate wrapper files
-          $HOME/temp-gradle/gradle-8.2/bin/gradle wrapper --gradle-version 8.2
-          # Copy fresh wrapper back
-          cp $HOME/temp-gradle/gradle/wrapper/gradle-wrapper.jar $GITHUB_WORKSPACE/gradle/wrapper/
-          # Go back
-          cd $GITHUB_WORKSPACE
+          echo "Replacing corrupted wrapper JAR..."
+          # Download official Gradle wrapper JAR directly
+          curl -L -o gradle/wrapper/gradle-wrapper.jar \
+            https://raw.githubusercontent.com/gradle/gradle/v8.2.0/subprojects/wrapper/src/main/resources/gradle-wrapper.jar
+          # Verify
           ls -la gradle/wrapper/
           file gradle/wrapper/gradle-wrapper.jar
         
