@@ -47,10 +47,14 @@ jobs:
         
       - name: Fix Gradle Wrapper JAR
         run: |
-          echo "Replacing corrupted wrapper JAR..."
-          # Download official Gradle wrapper JAR directly
-          curl -L -o gradle/wrapper/gradle-wrapper.jar \
-            https://raw.githubusercontent.com/gradle/gradle/v8.2.0/subprojects/wrapper/src/main/resources/gradle-wrapper.jar
+          echo "Regenerating Gradle wrapper..."
+          rm -f gradle/wrapper/gradle-wrapper.jar
+          # Install gradle manually
+          wget -q https://services.gradle.org/distributions/gradle-8.2-bin.zip -O /tmp/gradle-8.2-bin.zip
+          unzip -q /tmp/gradle-8.2-bin.zip -d /tmp/
+          # Now regenerate wrapper in the repo using gradle
+          export PATH=/tmp/gradle-8.2/bin:$PATH
+          gradle wrapper --gradle-version 8.2
           # Verify
           ls -la gradle/wrapper/
           file gradle/wrapper/gradle-wrapper.jar
