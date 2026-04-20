@@ -1,0 +1,4 @@
+# Gradle Wrapper JAR must be treated as binary
+*.jar binary
+*.so binary
+*.dll binary
