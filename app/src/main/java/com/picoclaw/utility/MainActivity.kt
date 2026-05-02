@@ -2,6 +2,7 @@ package com.picoclaw.utility
 
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.*
+import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -27,6 +28,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var inspectElementsButton: Button
     private lateinit var testActionsButton: Button
     private lateinit var featuresInfoText: TextView
+    private lateinit var screenStreamCard: View
+    private lateinit var openScreenStreamButton: Button
+    private lateinit var screenStreamStatusText: TextView
     
     private var isConnected = false
     private var isAccessibilityEnabled = false
@@ -83,6 +87,9 @@ class MainActivity : AppCompatActivity() {
         inspectElementsButton = findViewById(R.id.inspectElementsButton)
         testActionsButton = findViewById(R.id.testActionsButton)
         featuresInfoText = findViewById(R.id.featuresInfoText)
+        screenStreamCard = findViewById(R.id.screenStreamCard)
+        openScreenStreamButton = findViewById(R.id.openScreenStreamButton)
+        screenStreamStatusText = findViewById(R.id.screenStreamStatusText)
     }
     
     private fun setupClickListeners() {
@@ -100,6 +107,10 @@ class MainActivity : AppCompatActivity() {
         
         testActionsButton.setOnClickListener {
             showTestActionsDialog()
+        }
+        
+        openScreenStreamButton.setOnClickListener {
+            openScreenStreamApp()
         }
     }
     
@@ -195,6 +206,7 @@ class MainActivity : AppCompatActivity() {
             appendLine(if (canUseFeatures) "✓ Text reading from apps" else "✗ Text reading from apps")
             appendLine(if (canUseFeatures) "✓ Global navigation (Back, Home)" else "✗ Global navigation (Back, Home)")
             appendLine(if (canUseFeatures) "✓ Text input automation" else "✗ Text input automation")
+            appendLine(if (canUseFeatures) "✓ Screen streaming (MJPEG)" else "✗ Screen streaming (MJPEG)")
         }
     }
     
@@ -298,15 +310,90 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, "Home: $success", Toast.LENGTH_SHORT).show()
             }
             4 -> { // Long press
-                service.performLongPress(width / 2f, height / 2f) { success ->
+                service.performLongPress(width / 2f, height / 2f, 1000) { success ->
                     runOnUiThread { Toast.makeText(this, "Long press: $success", Toast.LENGTH_SHORT).show() }
                 }
             }
             5 -> { // Find element
-                // Test finding common elements
-                val node = service.findNodeByText("Settings")
-                Toast.makeText(this, node?.let { "Found: ${it.text}" } ?: "'Settings' not found", Toast.LENGTH_SHORT).show()
+                showFindElementDialog()
             }
         }
+    }
+    
+    private fun showFindElementDialog() {
+        val input = EditText(this)
+        input.hint = "Enter text to find"
+        
+        AlertDialog.Builder(this)
+            .setTitle("Find Element")
+            .setView(input)
+            .setPositiveButton("Find") { _, _ ->
+                val text = input.text.toString()
+                if (text.isNotEmpty()) {
+                    findAndShowElement(text)
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+    
+    private fun findAndShowElement(text: String) {
+        val service = PicoClawAccessibilityService.getInstance() ?: return
+        
+        val node = service.findNodeByText(text)
+        val bounds = service.getElementBounds(node)
+        
+        if (bounds != null) {
+            AlertDialog.Builder(this)
+                .setTitle("Element Found")
+                .setMessage("Text: ${node?.text}\nID: ${node?.viewIdResourceName}\nBounds: ${bounds}")
+                .setPositiveButton("OK", null)
+                .show()
+        } else {
+            Toast.makeText(this, "Element not found", Toast.LENGTH_SHORT).show()
+        }
+    }
+    
+    // ========== SCREEN STREAM ==========
+    
+    private fun openScreenStreamApp() {
+        val packageName = "info.dvkr.screenstream"
+        
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            data = Uri.parse("market://details?id=$packageName")
+        }
+        
+        try {
+            startActivity(intent)
+        } catch (e: ActivityNotFoundException) {
+            // Fallback to browser
+            val browserIntent = Intent(Intent.ACTION_VIEW).apply {
+                data = Uri.parse("https://f-droid.org/packages/$packageName/")
+            }
+            try {
+                startActivity(browserIntent)
+            } catch (e2: Exception) {
+                AlertDialog.Builder(this)
+                    .setTitle("ScreenStream Not Found")
+                    .setMessage("Please install ScreenStream from F-Droid to enable screen streaming.\n\n" +
+                            "Download: https://f-droid.org/packages/info.dvkr.screenstream/")
+                    .setPositiveButton("OK", null)
+                    .show()
+            }
+        }
+        
+        // Show setup instructions
+        AlertDialog.Builder(this)
+            .setTitle("ScreenStream Setup")
+            .setMessage("1. Open ScreenStream app\n\n" +
+                    "2. Go to Settings → Stream → Local mode\n\n" +
+                    "3. Set Port to 8080 (default)\n\n" +
+                    "4. Start streaming\n\n" +
+                    "5. Use WebSocket commands:\n" +
+                    "   - stream_capture: Get single frame\n" +
+                    "   - stream_start: Start continuous streaming\n" +
+                    "   - stream_stop: Stop streaming")
+            .setPositiveButton("OK", null)
+            .show()
     }
 }

@@ -97,6 +97,60 @@
 
     </LinearLayout>
 
+    <!-- Screen Stream Section (v1.1.0) -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/screenStreamCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="24dp"
+        app:cardCornerRadius="8dp"
+        app:cardElevation="2dp"
+        app:strokeColor="@android:color/holo_blue_dark"
+        app:strokeWidth="1dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Screen Stream (v1.1.0)"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp"
+                android:textColor="@android:color/holo_blue_dark"/>
+
+            <TextView
+                android:id="@+id/screenStreamStatusText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Requires ScreenStream app"
+                android:textSize="12sp"
+                android:layout_marginBottom="12dp"
+                android:textColor="@android:color/darker_gray"/>
+
+            <Button
+                android:id="@+id/openScreenStreamButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Open ScreenStream App"
+                android:textSize="12sp"/>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="1. Install ScreenStream from F-Droid\n2. Enable Local mode, Port 8080\n3. Start streaming\n4. Use WS commands to capture"
+                android:textSize="11sp"
+                android:layout_marginTop="8dp"
+                android:textColor="@android:color/darker_gray"/>
+
+        </LinearLayout>
+
+    </com.google.android.material.card.MaterialCardView>
+
     <!-- Features Info -->
     <TextView
         android:id="@+id/featuresInfoText"

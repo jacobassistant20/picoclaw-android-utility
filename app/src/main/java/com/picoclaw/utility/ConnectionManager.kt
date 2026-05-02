@@ -2,6 +2,8 @@ package com.picoclaw.utility
 
 import android.content.Context
 import android.util.Log
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import org.java_websocket.WebSocket
 import org.java_websocket.handshake.ClientHandshake
 import org.java_websocket.server.WebSocketServer
@@ -17,12 +19,19 @@ object ConnectionManager {
     
     private const val TAG = "ConnectionManager"
     private const val DEFAULT_PORT = 8765
+    private const val DEFAULT_STREAM_PORT = 8080
     
     private var webSocketServer: WebSocketServer? = null
     private var isRunning = false
     private var context: Context? = null
     
     private val clients = mutableSetOf<WebSocket>()
+    
+    // Screen stream related
+    private var streamThread: Thread? = null
+    private var isStreaming = false
+    private val httpClient = OkHttpClient()
+    private var streamPort = DEFAULT_STREAM_PORT
     
     /**
      * Initialize the WebSocket server
@@ -76,6 +85,9 @@ object ConnectionManager {
      */
     fun disconnect() {
         isRunning = false
+        isStreaming = false
+        streamThread?.interrupt()
+        streamThread = null
         clients.forEach { it.close() }
         clients.clear()
         
@@ -157,6 +169,7 @@ object ConnectionManager {
                 "find_element" -> {
                     val text = params.optString("text", "")
                     val byId = params.optString("id", "")
+                    
                     val node = if (text.isNotEmpty()) {
                         service.findNodeByText(text)
                     } else {
@@ -259,6 +272,72 @@ object ConnectionManager {
                     }))
                 }
                 
+                // ========== SCREEN STREAM COMMANDS ==========
+                
+                "stream_capture" -> {
+                    val port = params.optInt("port", DEFAULT_STREAM_PORT)
+                    thread {
+                        try {
+                            val frame = fetchSingleFrame(port)
+                            if (frame != null) {
+                                val base64 = MjpegUtil.encodeToBase64(frame)
+                                val dims = MjpegUtil.getImageDimensions(frame)
+                                val (w, h) = dims ?: Pair(0, 0)
+                                broadcast(createResponse("stream_capture", "ok", JSONObject().apply {
+                                    put("image", base64)
+                                    put("width", w)
+                                    put("height", h)
+                                }))
+                            } else {
+                                broadcast(createResponse("stream_capture", "failed", JSONObject().apply {
+                                    put("error", "Could not fetch frame")
+                                }))
+                            }
+                        } catch (e: Exception) {
+                            Log.e(TAG, "stream_capture error", e)
+                            broadcast(createResponse("stream_capture", "error", JSONObject().apply {
+                                put("error", e.message)
+                            }))
+                        }
+                    }
+                }
+                
+                "stream_start" -> {
+                    val port = params.optInt("port", DEFAULT_STREAM_PORT)
+                    if (isStreaming) {
+                        broadcast(createResponse("stream_start", "already_streaming", JSONObject().apply {
+                            put("port", streamPort)
+                        }))
+                        return@handleCommand
+                    }
+                    
+                    streamPort = port
+                    isStreaming = true
+                    
+                    broadcast(createResponse("stream_start", "ok", JSONObject().apply {
+                        put("port", port)
+                        put("url", "http://localhost:$port/stream.mjpeg")
+                    }))
+                    
+                    // Start streaming thread
+                    streamThread = thread {
+                        startStreaming(port)
+                    }
+                }
+                
+                "stream_stop" -> {
+                    if (!isStreaming) {
+                        broadcast(createResponse("stream_stop", "not_streaming"))
+                        return@handleCommand
+                    }
+                    
+                    isStreaming = false
+                    streamThread?.interrupt()
+                    streamThread = null
+                    
+                    broadcast(createResponse("stream_stop", "ok"))
+                }
+                
                 else -> {
                     broadcast(createResponse("error", "Unknown command: $command"))
                 }
@@ -266,6 +345,92 @@ object ConnectionManager {
         } catch (e: Exception) {
             Log.e(TAG, "Error handling command", e)
             client?.send(createResponse("error", "Parse error: ${e.message}"))
+        }
+    }
+    
+    // ========== STREAMING HELPERS ==========
+    
+    private fun fetchSingleFrame(port: Int): ByteArray? {
+        val url = "http://localhost:$port/stream.mjpeg"
+        val request = Request.Builder().url(url).build()
+        
+        httpClient.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) return null
+            
+            val body = response.body ?: return null
+            val buffer = ByteArray(1024 * 1024) // 1MB buffer
+            val stream = body.byteStream()
+            
+            // Read enough data to find a frame
+            var totalRead = 0
+            var read: Int
+            while (stream.read(buffer, totalRead, buffer.size - totalRead).also { read = it } != -1) {
+                totalRead += read
+                if (totalRead >= buffer.size - 1) break
+                
+                // Try to extract frame
+                val frame = MjpegUtil.extractJpegFrame(buffer.copyOf(totalRead))
+                if (frame != null) return frame
+            }
+            
+            return MjpegUtil.extractJpegFrame(buffer.copyOf(totalRead))
+        }
+    }
+    
+    private fun startStreaming(port: Int) {
+        val url = "http://localhost:$port/stream.mjpeg"
+        var frameBuffer = ByteArray(0)
+        
+        try {
+            val request = Request.Builder().url(url).build()
+            httpClient.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    broadcast(createResponse("stream_error", "Failed to connect", JSONObject().apply {
+                        put("error", "HTTP ${response.code}")
+                    }))
+                    return
+                }
+                
+                val body = response.body ?: return
+                val stream = body.byteStream()
+                val buffer = ByteArray(256 * 1024) // 256KB buffer
+                var totalRead = 0
+                var read: Int
+                
+                while (isStreaming && !Thread.currentThread().isInterrupted) {
+                    read = stream.read(buffer, totalRead, buffer.size - totalRead)
+                    if (read == -1) break
+                    
+                    totalRead += read
+                    
+                    // Try to extract complete frame
+                    val frame = MjpegUtil.extractJpegFrame(buffer.copyOf(totalRead))
+                    if (frame != null) {
+                        val base64 = MjpegUtil.encodeToBase64(frame)
+                        broadcast(JSONObject().apply {
+                            put("type", "frame")
+                            put("image", base64)
+                            put("timestamp", System.currentTimeMillis())
+                        }.toString())
+                        
+                        // Reset buffer after frame
+                        frameBuffer = buffer.copyOf(totalRead)
+                        totalRead = 0
+                    }
+                    
+                    // Expand buffer if needed
+                    if (totalRead > buffer.size * 0.8) {
+                        buffer.copyOf(totalRead)
+                    }
+                }
+            }
+        } catch (e: InterruptedException) {
+            Log.d(TAG, "Streaming interrupted")
+        } catch (e: Exception) {
+            Log.e(TAG, "Streaming error", e)
+            broadcast(createResponse("stream_error", e.message ?: "Unknown error"))
+        } finally {
+            isStreaming = false
         }
     }
     
