@@ -12,13 +12,14 @@ Implement screen streaming capability in PicoClaw Android Utility v1.1.0 using S
 
 ## [OUT:markdown_checklist]
 Implementation progress:
-- [ ] Add OkHttp dependency to build.gradle
-- [ ] Implement MJPEG frame extraction utility
-- [ ] Add stream_start, stream_stop, stream_capture commands in ConnectionManager
-- [ ] Add Screen Stream UI section in MainActivity
-- [ ] Update version to 1.1.0 in build.gradle
-- [ ] Build and verify APK compiles
-- [ ] Commit all changes
+- [x] Add OkHttp dependency to build.gradle
+- [x] Implement MJPEG frame extraction utility
+- [x] Add stream_start, stream_stop, stream_capture commands in ConnectionManager
+- [x] Add Screen Stream UI section in MainActivity
+- [x] Update version to 1.1.0 in build.gradle
+- [x] Commit all changes
+- [ ] Push to remote
+- [ ] Build and verify APK compiles (requires Android environment)
 
 ## [PATH]
 1. Read DEVELOPMENT_V1.1.0.md for full requirements
@@ -43,4 +44,4 @@ Implementation progress:
 - GitHub CLI: gh (for creating release later)
 
 ## [ACK]
-Confirm before starting implementation.
+Confirm by: [Jacob]
