@@ -31,10 +31,12 @@ class MainActivity : AppCompatActivity() {
     private lateinit var screenStreamCard: View
     private lateinit var openScreenStreamButton: Button
     private lateinit var screenStreamStatusText: TextView
+    private lateinit var piperTtsButton: Button
     
     private var isConnected = false
     private var isAccessibilityEnabled = false
     private val mainHandler = Handler(Looper.getMainLooper())
+    private lateinit var piperTtsManager: PiperTtsManager
     
     private val serviceConnectionReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -55,6 +57,9 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        
+        // Initialize Piper TTS Manager
+        piperTtsManager = PiperTtsManager(this)
         
         bindViews()
         setupClickListeners()
@@ -77,6 +82,7 @@ class MainActivity : AppCompatActivity() {
         } catch (e: IllegalArgumentException) {
             // Receiver not registered
         }
+        piperTtsManager.stop()
     }
     
     private fun bindViews() {
@@ -90,6 +96,7 @@ class MainActivity : AppCompatActivity() {
         screenStreamCard = findViewById(R.id.screenStreamCard)
         openScreenStreamButton = findViewById(R.id.openScreenStreamButton)
         screenStreamStatusText = findViewById(R.id.screenStreamStatusText)
+        piperTtsButton = findViewById(R.id.piperTtsButton)
     }
     
     private fun setupClickListeners() {
@@ -111,6 +118,10 @@ class MainActivity : AppCompatActivity() {
         
         openScreenStreamButton.setOnClickListener {
             openScreenStreamApp()
+        }
+        
+        piperTtsButton.setOnClickListener {
+            testPiperTts()
         }
     }
     
@@ -207,6 +218,7 @@ class MainActivity : AppCompatActivity() {
             appendLine(if (canUseFeatures) "✓ Global navigation (Back, Home)" else "✗ Global navigation (Back, Home)")
             appendLine(if (canUseFeatures) "✓ Text input automation" else "✗ Text input automation")
             appendLine(if (canUseFeatures) "✓ Screen streaming (MJPEG)" else "✗ Screen streaming (MJPEG)")
+            appendLine(if (piperTtsManager.isReady()) "✓ Piper TTS (offline)" else "✗ Piper TTS (offline)")
         }
     }
     
@@ -394,6 +406,41 @@ class MainActivity : AppCompatActivity() {
                     "   - stream_start: Start continuous streaming\n" +
                     "   - stream_stop: Stop streaming")
             .setPositiveButton("OK", null)
+            .show()
+    }
+    
+    // ========== PIPER TTS ==========
+    
+    private fun testPiperTts() {
+        if (!piperTtsManager.isReady()) {
+            AlertDialog.Builder(this)
+                .setTitle("Piper TTS Not Ready")
+                .setMessage("Piper assets are not bundled or failed to extract.\n\n" +
+                        "Make sure you have:\n" +
+                        "- piper binary in assets/piper/\n" +
+                        "- en_US-lessac-medium.onnx model in assets/piper/")
+                .setPositiveButton("OK", null)
+                .show()
+            return
+        }
+        
+        val testTexts = arrayOf(
+            "Hello! This is PicoClaw speaking.",
+            "The quick brown fox jumps over the lazy dog.",
+            "Testing offline text to speech with Piper."
+        )
+        
+        AlertDialog.Builder(this)
+            .setTitle("Test Piper TTS")
+            .setItems(testTexts) { _, which ->
+                piperTtsManager.speak(testTexts[which]) {
+                    runOnUiThread {
+                        Toast.makeText(this, "Speech complete", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                Toast.makeText(this, "Playing...", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("Cancel", null)
             .show()
     }
 }

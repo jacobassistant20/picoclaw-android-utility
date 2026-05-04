@@ -102,7 +102,7 @@
         android:id="@+id/screenStreamCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="24dp"
+        android:layout_marginBottom="16dp"
         app:cardCornerRadius="8dp"
         app:cardElevation="2dp"
         app:strokeColor="@android:color/holo_blue_dark"
@@ -146,6 +146,51 @@
                 android:textSize="11sp"
                 android:layout_marginTop="8dp"
                 android:textColor="@android:color/darker_gray"/>
+
+        </LinearLayout>
+
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Piper TTS Section (v1.1.1) -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/piperTtsCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        app:cardCornerRadius="8dp"
+        app:cardElevation="2dp"
+        app:strokeColor="@android:color/holo_green_dark"
+        app:strokeWidth="1dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Piper TTS (v1.1.1)"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp"
+                android:textColor="@android:color/holo_green_dark"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Offline text-to-speech using Piper neural TTS. Works without internet."
+                android:textSize="12sp"
+                android:layout_marginBottom="12dp"
+                android:textColor="@android:color/darker_gray"/>
+
+            <Button
+                android:id="@+id/piperTtsButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Test Piper TTS"
+                android:textSize="12sp"/>
 
         </LinearLayout>
 
